@@ -2,13 +2,13 @@ import { GoogleGenAI } from "@google/genai";
 import { Grade } from "../types";
 
 // Initialize Gemini AI
-// API Key must be obtained exclusively from process.env.API_KEY
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// API Key harus di-set di file .env.local atau Secrets GitHub dengan nama GEMINI_API_KEY
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 export const generateTeacherComment = async (studentName: string, grades: Grade[]) => {
     // 1. Validasi API Key
-    if (!process.env.API_KEY) {
-        return "Konfigurasi API Key Google Gemini belum ditemukan. Harap hubungi administrator.";
+    if (!process.env.GEMINI_API_KEY) {
+        return "Konfigurasi API Key Google Gemini (GEMINI_API_KEY) belum ditemukan. Harap hubungi administrator.";
     }
 
     // 2. Validasi Data Nilai Kosong
@@ -31,7 +31,7 @@ export const generateTeacherComment = async (studentName: string, grades: Grade[
 
     // 4. Persiapan Data untuk Prompt
     const gradeSummary = validGrades.map(g => {
-        const details = [];
+        const details = [] as string[];
         
         // Hitung rata-rata sumatif jika ada
         if (g.tpScore > 0 || g.finalScore > 0) {
@@ -61,12 +61,7 @@ Pedoman Penulisan:
 6. Jangan menyebutkan angka nilai secara eksplisit (misal: "Nilai kamu 80"), tapi gunakan deskripsi kualitatif (misal: "Sangat baik", "Perlu ditingkatkan").
 7. Fokus pada perkembangan karakter dan akademik secara seimbang.`;
 
-    const prompt = `
-Nama Siswa: ${studentName}
-Data Nilai Mata Pelajaran:
-${gradeSummary}
-
-Berdasarkan data di atas, buatlah narasi Catatan Wali Kelas untuk rapor.`;
+    const prompt = `\nNama Siswa: ${studentName}\nData Nilai Mata Pelajaran:\n${gradeSummary}\n\nBerdasarkan data di atas, buatlah narasi Catatan Wali Kelas untuk rapor.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -79,7 +74,9 @@ Berdasarkan data di atas, buatlah narasi Catatan Wali Kelas untuk rapor.`;
             }
         });
 
-        return response.text || "Gagal menghasilkan komentar dari AI.";
+        // response.text biasanya berisi hasil — fallback jika undefined
+        // @ts-ignore
+        return response?.text || "Gagal menghasilkan komentar dari AI.";
     } catch (error) {
         console.error("Gemini Error:", error);
         return "Terjadi kesalahan saat menghubungi layanan AI. Silakan coba lagi beberapa saat lagi.";
